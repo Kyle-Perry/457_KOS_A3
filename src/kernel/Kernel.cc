@@ -52,17 +52,38 @@ void kosMain() {
     }
     KOUT::outl();
   }
-  
+
+  int minGranularity = 0;
+  int epochLen = 0;
+  int parsed = 0;
+  bool firstRead = false;
   iter = kernelFS.find("schedparam");
   if (iter == kernelFS.end()) {
-    KOUT::outl("schedparam i1nformation not found");
+    KOUT::outl("schedparam information not found");
   } else {
     FileAccess f(iter->second);
-    for (;;) {
+    for (;;) {	
       char c;
       if (f.read(&c, 1) == 0) break;
       KOUT::out1(c);
+      if( (c >= '0') && (c <= '9'))
+	parsed = (parsed * 10) + (c - '0');
+      else if ( parsed != 0 )
+	{
+	  if (!firstRead)
+	    {
+	      minGranularity = parsed;
+	      firstRead = !firstRead;	      
+	    }
+	  else
+	    {
+	      epochLen = parsed;
+	    }
+	  parsed = 0;
+	}
     }
+    KOUT::outl(minGranularity);
+    KOUT::outl(epochLen);
     KOUT::outl();
   }
 #if TESTING_TIMER_TEST
