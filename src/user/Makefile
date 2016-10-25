@@ -11,7 +11,7 @@ SRC=$(wildcard *.cc)
 OBJ=$(SRC:%.cc=%.o)
 EXE=$(SRC:%.cc=exec/%)
 
-all: $(EXE) exec/motb
+all: $(EXE) exec/motb exec/schedparam
 
 .PHONY: .FORCE
 
@@ -34,6 +34,12 @@ exec/motb: .FORCE
 	@date >> $@
 	@echo >> $@
 
+exec/schedparam: .FORCE
+	@echo creating $@
+	@mkdir -p exec
+	@echo mingranularity 4 > $@
+	@echo epochlen 20 >> $@
+	
 echo:
 	@echo SRC: $(SRC)
 	@echo OBJ: $(OBJ)
