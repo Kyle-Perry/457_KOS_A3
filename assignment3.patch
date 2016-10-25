@@ -1,0 +1,524 @@
+From 3eb79db0c2415d7213de5b0029590d4c4387fe27 Mon Sep 17 00:00:00 2001
+From: okaddam <okaddam@csx2.cs.ucalgary.ca>
+Date: Sat, 30 Jan 2016 16:38:15 -0700
+Subject: [PATCH 1/2] assignment 2 patch
+
+---
+ src/generic/tree.h       | 138 ++++++++++++++++++++++++++++++++
+ src/runtime/Scheduler.cc | 203 +++++++++++++++++++++++++++++++++--------------
+ src/runtime/Scheduler.h  |  10 ++-
+ src/runtime/Thread.cc    |   0
+ src/runtime/Thread.h     |   3 +
+ 5 files changed, 294 insertions(+), 60 deletions(-)
+ create mode 100755 src/generic/tree.h
+ mode change 100644 => 100755 src/runtime/Scheduler.cc
+ mode change 100644 => 100755 src/runtime/Scheduler.h
+ mode change 100644 => 100755 src/runtime/Thread.cc
+ mode change 100644 => 100755 src/runtime/Thread.h
+
+diff --git a/src/generic/tree.h b/src/generic/tree.h
+new file mode 100755
+index 0000000..a1027c9
+--- /dev/null
++++ b/src/generic/tree.h
+@@ -0,0 +1,138 @@
++// AVL-tree implementation
++// source: https://github.com/SuprDewd/CompetitiveProgramming/blob/master/code/data-structures/avl_tree.cpp
++// note that the code on the github is very unreadable
++// so most of the changes are removals of unused things,
++// additions of the min node functions
++// and making the code more readable.
++
++template <class T>
++class Tree {
++public:
++    struct node {
++        T item; node *p, *l, *r;
++        int size, height;
++        node(const T &_item, node *_p = NULL) : item(_item), p(_p),
++        l(NULL), r(NULL), size(1), height(0) { } };
++    Tree() : root(NULL) { }
++    node *root;
++    
++    bool empty() const {
++		return root==NULL;
++	}
++    
++    T* readMinNode() const {
++        node *cur = root;
++        while (cur->l){ cur=cur->l; }
++        return &(cur->item);
++    }
++    
++    T* popMinNode() {
++        node *cur = root;
++        while (cur->l){ cur=cur->l; }
++        T* item = &(cur->item);
++        erase(cur);
++        return item;
++    }
++    
++    node* find(const T &item) const {
++        node *cur = root;
++        while (cur) {
++            if (cur->item < item) cur = cur->r;
++            else if (item < cur->item) cur = cur->l;
++            else break; }
++        return cur; }
++        
++    void insert(const T &item) {
++        node *prev = NULL, **cur = &root;
++        while (*cur) {
++            prev = *cur;
++            if ((*cur)->item < item) cur = &((*cur)->r);
++            else cur = &((*cur)->l);
++        }
++        node *n = new node(item, prev);
++        *cur = n, fix(n);
++		return;
++	}
++	
++    void deleteNode(const T &item) {erase(find(item));}
++    void erase(node *n) {
++        if (!n) return;
++        if (!n->l && n->r) parent_leg(n) = n->r, n->r->p = n->p;
++        else if (n->l && !n->r) parent_leg(n) = n->l, n->l->p = n->p;
++        else if (n->l && n->r) {
++            node *s = successor(n);
++            erase(s);
++            s->p = n->p, s->l = n->l, s->r = n->r;
++            if (n->l) n->l->p = s;
++            if (n->r) n->r->p = s;
++            parent_leg(n) = s, fix(s);
++            return;
++        } else parent_leg(n) = NULL;
++        fix(n->p), n->p = n->l = n->r = NULL;
++	}
++	
++    node* successor(node *n) const {
++        if (!n) return NULL;
++        if (n->r) return nth(0, n->r);
++        node *p = n->p;
++        while (p && p->r == n) n = p, p = p->p;
++        return p;
++	}
++    
++    node* nth(int n, node *cur = NULL) const {
++        if (!cur) cur = root;
++        while (cur) {
++            if (n < sz(cur->l)) cur = cur->l;
++            else if (n > sz(cur->l)) n -= sz(cur->l) + 1, cur = cur->r;
++            else break;
++        } return cur; }
++
++private:
++    inline int sz(node *n) const { return n ? n->size : 0; }
++    inline int height(node *n) const { return n ? n->height : -1; }
++    inline bool left_heavy(node *n) const {
++        return n && height(n->l) > height(n->r); }
++    inline bool right_heavy(node *n) const {
++        return n && height(n->r) > height(n->l); }
++    inline bool too_heavy(node *n) const {
++		int hl = height(n->l);
++		int hr = height(n->r);
++        int m = hl>hr ? hl-hr : hr-hl;
++        return n && m > 1;
++    }
++
++    node*& parent_leg(node *n) {
++        if (!n->p) return root;
++        if (n->p->l == n) return n->p->l;
++        if (n->p->r == n) return n->p->r;
++    }
++    
++    void augment(node *n) {
++        if (!n) return;
++        n->size = 1 + sz(n->l) + sz(n->r);
++        int hl = height(n->l);
++        int hr = height(n->r);
++        int m = hl>hr ? hl : hr;
++        n->height = 1 + m;
++	}
++    #define rotate(l, r) \
++        node *l = n->l; \
++        l->p = n->p; \
++        parent_leg(n) = l; \
++        n->l = l->r; \
++        if (l->r) l->r->p = n; \
++        l->r = n, n->p = l; \
++        augment(n), augment(l)
++    void left_rotate(node *n) { rotate(r, l); }
++    void right_rotate(node *n) { rotate(l, r); }
++    void fix(node *n) {
++        while (n) { augment(n);
++            if (too_heavy(n)) {
++                if (left_heavy(n) && right_heavy(n->l)) left_rotate(n->l);
++                else if (right_heavy(n) && left_heavy(n->r))
++                    right_rotate(n->r);
++                if (left_heavy(n)) right_rotate(n);
++                else left_rotate(n);
++                n = n->p; }
++            n = n->p; } }
++};
+diff --git a/src/runtime/Scheduler.cc b/src/runtime/Scheduler.cc
+old mode 100644
+new mode 100755
+index 7d760c3..71db50d
+--- a/src/runtime/Scheduler.cc
++++ b/src/runtime/Scheduler.cc
+@@ -19,38 +19,136 @@
+ #include "runtime/Stack.h"
+ #include "runtime/Thread.h"
+ #include "kernel/Output.h"
+-
++#include "world/Access.h"
++#include "machine/Machine.h"
++#include "devices/Keyboard.h"	   
++	   
++/***********************************
++    Used as a node in the tree to 
++	reference the thread instance
++***********************************/
++class ThreadNode{
++	friend class Scheduler;
++	Thread *th;
++	
++	public:
++		bool operator < (ThreadNode other) const {
++			return th->priority < other.th->priority;
++		}
++		bool operator == (ThreadNode other) const {
++			return th->priority == other.th->priority;
++		}
++		bool operator > (ThreadNode other) const {
++			return th->priority > other.th->priority;
++		}
++    
++	//this is how we want to do it
++	ThreadNode(Thread *t){
++		th = t;
++	}
++};	   
++	   
++/***********************************
++			Constructor
++***********************************/	   
+ Scheduler::Scheduler() : readyCount(0), preemption(0), resumption(0), partner(this) {
+-  Thread* idleThread = Thread::create((vaddr)idleStack, minimumStack);
+-  idleThread->setAffinity(this)->setPriority(idlePriority);
+-  // use low-level routines, since runtime context might not exist
+-  idleThread->stackPointer = stackInit(idleThread->stackPointer, &Runtime::getDefaultMemoryContext(), (ptr_t)Runtime::idleLoop, this, nullptr, nullptr);
+-  readyQueue[idlePriority].push_back(*idleThread);
+-  readyCount += 1;
++	//Initialize the idle thread
++	//(It keeps the CPU awake when there are no other threads currently running)
++	Thread* idleThread = Thread::create((vaddr)idleStack, minimumStack);
++	idleThread->setAffinity(this)->setPriority(idlePriority);
++	// use low-level routines, since runtime context might not exist
++	idleThread->stackPointer = stackInit(idleThread->stackPointer, &Runtime::getDefaultMemoryContext(), (ptr_t)Runtime::idleLoop, this, nullptr, nullptr);
++	
++	//Initialize the tree that contains the threads waiting to be served
++	readyTree = new Tree<ThreadNode>();
++	
++	//Add the idle thread to the tree
++	readyTree->insert(*(new ThreadNode(idleThread)));
++	readyCount += 1;
+ }
+ 
++/***********************************
++		Static functions
++***********************************/      
+ static inline void unlock() {}
+ 
+ template<typename... Args>
+ static inline void unlock(BasicLock &l, Args&... a) {
+   l.release();
+   unlock(a...);
++}	   
++
++/***********************************
++    Gets called whenever a thread 
++	should be added to the tree
++***********************************/
++void Scheduler::enqueue(Thread& t) {
++  GENASSERT1(t.priority < maxPriority, t.priority);
++  readyLock.acquire();
++  readyTree->insert(*(new ThreadNode(&t)));	
++  bool wake = (readyCount == 0);
++  readyCount += 1;						
++  readyLock.release();
++  Runtime::debugS("Thread ", FmtHex(&t), " queued on ", FmtHex(this));
++  if (wake) Runtime::wakeUp(this);
++}
++
++/***********************************
++    Gets triggered at every RTC
++	interrupt (per Scheduler)
++***********************************/
++void Scheduler::preempt(){		// IRQs disabled, lock count inflated
++	//Get current running thread
++	Thread* currentThread = Runtime::getCurrThread();
++
++	//Get its target scheduler
++	Scheduler* target = currentThread->getAffinity();						
++	
++	//Check if the thread should move to a new scheduler
++	//(based on the affinity)
++	if(target != this && target){						
++		//Switch the served thread on the target scheduler
++		switchThread(target);				
++	}
++	
++	//Check if it is time to switch the thread on the current scheduler
++	if(switchTest(currentThread)){
++		//Switch the served thread on the current scheduler
++		switchThread(this);	
++	}
++}
++
++/***********************************
++    Checks if it is time to stop
++	serving the current thread
++	and start serving the next
++	one
++***********************************/
++bool Scheduler::switchTest(Thread* t){
++	t->vRuntime++;
++	if (t->vRuntime % 10 == 0)
++		return true;
++	return false;															//Otherwise return that the thread should not be switched
+ }
+ 
+-// very simple N-class prio scheduling!
++/***********************************
++    Switches the current running
++	thread with the next thread
++	waiting in the tree
++***********************************/
+ template<typename... Args>
+ inline void Scheduler::switchThread(Scheduler* target, Args&... a) {
+   preemption += 1;
+   CHECK_LOCK_MIN(sizeof...(Args));
+   Thread* nextThread;
+   readyLock.acquire();
+-  for (mword i = 0; i < (target ? idlePriority : maxPriority); i += 1) {
+-    if (!readyQueue[i].empty()) {
+-      nextThread = readyQueue[i].pop_front();
++	
++  if(!readyTree->empty()){
++	  nextThread = readyTree->popMinNode()->th;	
+       readyCount -= 1;
+-      goto threadFound;
+-    }
+-  }
++ 	  goto threadFound;
++	}
++
+   readyLock.release();
+   GENASSERT0(target);
+   GENASSERT0(!sizeof...(Args));
+@@ -82,59 +180,33 @@ threadFound:
+   }
+ }
+ 
+-extern "C" Thread* postSwitch(Thread* prevThread, Scheduler* target) {
+-  CHECK_LOCK_COUNT(1);
+-  if fastpath(target) Scheduler::resume(*prevThread);
+-  return prevThread;
+-}
+-
+-extern "C" void invokeThread(Thread* prevThread, Runtime::MemoryContext* ctx, funcvoid3_t func, ptr_t arg1, ptr_t arg2, ptr_t arg3) {
+-  Runtime::postResume(true, *prevThread, *ctx);
+-  func(arg1, arg2, arg3);
+-  Runtime::getScheduler()->terminate();
+-}
+-
+-void Scheduler::enqueue(Thread& t) {
+-  GENASSERT1(t.priority < maxPriority, t.priority);
+-  readyLock.acquire();
+-  readyQueue[t.priority].push_back(t);
+-  bool wake = (readyCount == 0);
+-  readyCount += 1;
+-  readyLock.release();
+-  Runtime::debugS("Thread ", FmtHex(&t), " queued on ", FmtHex(this));
+-  if (wake) Runtime::wakeUp(this);
+-}
+-
+-void Scheduler::resume(Thread& t) {
+-  GENASSERT1(&t != Runtime::getCurrThread(), Runtime::getCurrThread());
+-  if (t.nextScheduler) t.nextScheduler->enqueue(t);
+-  else Runtime::getScheduler()->enqueue(t);
+-}
+-
+-void Scheduler::preempt() {               // IRQs disabled, lock count inflated
+-#if TESTING_NEVER_MIGRATE
+-  switchThread(this);
+-#else /* migration enabled */
+-  Scheduler* target = Runtime::getCurrThread()->getAffinity();
+-#if TESTING_ALWAYS_MIGRATE
+-  if (!target) target = partner;
+-#else /* simple load balancing */
+-  if (!target) target = (partner->readyCount + 2 < readyCount) ? partner : this;
+-#endif
+-  switchThread(target);
+-#endif
+-}
+-
++/***********************************
++    Gets triggered when a thread is 
++	suspended
++***********************************/
+ void Scheduler::suspend(BasicLock& lk) {
+   Runtime::FakeLock fl;
+   switchThread(nullptr, lk);
+ }
+-
+ void Scheduler::suspend(BasicLock& lk1, BasicLock& lk2) {
+   Runtime::FakeLock fl;
+   switchThread(nullptr, lk1, lk2);
+ }
+ 
++/***********************************
++    Gets triggered when a thread is 
++	awake after suspension
++***********************************/
++void Scheduler::resume(Thread& t) {
++  GENASSERT1(&t != Runtime::getCurrThread(), Runtime::getCurrThread());
++  if (t.nextScheduler) t.nextScheduler->enqueue(t);
++  else Runtime::getScheduler()->enqueue(t);
++}
++
++/***********************************
++    Gets triggered when a thread is 
++	done but not destroyed yet
++***********************************/
+ void Scheduler::terminate() {
+   Runtime::RealLock rl;
+   Thread* thr = Runtime::getCurrThread();
+@@ -143,3 +215,18 @@ void Scheduler::terminate() {
+   switchThread(nullptr);
+   unreachable();
+ }
++
++/***********************************
++		Other functions
++***********************************/      
++extern "C" Thread* postSwitch(Thread* prevThread, Scheduler* target) {
++  CHECK_LOCK_COUNT(1);
++  if fastpath(target) Scheduler::resume(*prevThread);
++  return prevThread;
++}
++
++extern "C" void invokeThread(Thread* prevThread, Runtime::MemoryContext* ctx, funcvoid3_t func, ptr_t arg1, ptr_t arg2, ptr_t arg3) {
++  Runtime::postResume(true, *prevThread, *ctx);
++  func(arg1, arg2, arg3);
++  Runtime::getScheduler()->terminate();
++}
+diff --git a/src/runtime/Scheduler.h b/src/runtime/Scheduler.h
+old mode 100644
+new mode 100755
+index bc86000..ebfe368
+--- a/src/runtime/Scheduler.h
++++ b/src/runtime/Scheduler.h
+@@ -19,17 +19,21 @@
+ 
+ #include "generic/EmbeddedContainers.h"
+ #include "runtime/Runtime.h"
++#include "generic/tree.h"
+ 
+ class Thread;
++class ThreadNode;
+ 
+ class Scheduler {
+   friend void Runtime::idleLoop(Scheduler*);
+   bufptr_t idleStack[minimumStack];
+ 
+-  // very simple N-class prio scheduling
+   BasicLock readyLock;
++  BasicLock printLock;
++  
+   volatile mword readyCount; 
+-  EmbeddedList<Thread> readyQueue[maxPriority];
++  Tree<ThreadNode> *readyTree;
++  
+   volatile mword preemption;
+   volatile mword resumption;
+ 
+@@ -45,6 +49,8 @@ class Scheduler {
+ 
+ public:
+   Scheduler();
++  
++  bool switchTest(Thread* t);
+   void setPartner(Scheduler& s) { partner = &s; }
+   static void resume(Thread& t);
+   void preempt();
+diff --git a/src/runtime/Thread.cc b/src/runtime/Thread.cc
+old mode 100644
+new mode 100755
+diff --git a/src/runtime/Thread.h b/src/runtime/Thread.h
+old mode 100644
+new mode 100755
+index a09bb0e..c6952fc
+--- a/src/runtime/Thread.h
++++ b/src/runtime/Thread.h
+@@ -24,7 +24,9 @@ class Scheduler;
+ class UnblockInfo;
+ 
+ class Thread : public EmbeddedList<Thread>::Link {
++
+   friend class Scheduler;   // Scheduler accesses many internals
++  friend class ThreadNode;	// ThreadNode needs access to vRuntime.
+   friend void Runtime::postResume(bool, Thread&, AddressSpace&);
+ 
+   vaddr stackPointer;       // holds stack pointer while thread inactive
+@@ -32,6 +34,7 @@ class Thread : public EmbeddedList<Thread>::Link {
+   size_t stackSize;         // size of allocated memory
+ 
+   mword priority;           // scheduling priority
++  mword vRuntime;			// virtual runtime, needed to sort the tree
+   bool affinity;            // stick with scheduler
+   Scheduler* nextScheduler; // resume on same core (for now)
+ 
+-- 
+2.4.3
+
+
+From 04699599372cdcf19e3d8764713ed106b6a0aff4 Mon Sep 17 00:00:00 2001
+From: okaddam <okaddam@csx2.cs.ucalgary.ca>
+Date: Mon, 1 Feb 2016 12:38:48 -0700
+Subject: [PATCH 2/2] Added the citation
+
+---
+ src/generic/tree.h       | 2 ++
+ src/runtime/Scheduler.cc | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/src/generic/tree.h b/src/generic/tree.h
+index a1027c9..c9430e8 100755
+--- a/src/generic/tree.h
++++ b/src/generic/tree.h
+@@ -5,6 +5,8 @@
+ // additions of the min node functions
+ // and making the code more readable.
+ 
++//Created by: Adam Fazekas (Fall 2015)
++
+ template <class T>
+ class Tree {
+ public:
+diff --git a/src/runtime/Scheduler.cc b/src/runtime/Scheduler.cc
+index 71db50d..3db5360 100755
+--- a/src/runtime/Scheduler.cc
++++ b/src/runtime/Scheduler.cc
+@@ -26,6 +26,7 @@
+ /***********************************
+     Used as a node in the tree to 
+ 	reference the thread instance
++	Created by: Adam Fazekas (Fall 2015)
+ ***********************************/
+ class ThreadNode{
+ 	friend class Scheduler;
+-- 
+2.4.3
+

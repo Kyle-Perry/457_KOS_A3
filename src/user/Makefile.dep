@@ -1,0 +1,16 @@
+threadtest.o: threadtest.cc \
+ /home/uga/kyle.perry/kos/src/user/../testoptions.h \
+ /home/uga/kyle.perry/kos/src/user/../include/syscalls.h \
+ /home/uga/kyle.perry/kos/src/user/../include/kostypes.h \
+ /home/uga/kyle.perry/kos/src/user/../include/pthread.h \
+ /home/uga/kyle.perry/kos/src/user/../include/syscalls.h
+systest.o: systest.cc /home/uga/kyle.perry/kos/src/user/../testoptions.h \
+ /home/uga/kyle.perry/kos/src/user/../include/syscalls.h \
+ /home/uga/kyle.perry/kos/src/user/../include/kostypes.h
+manythread.o: manythread.cc \
+ /home/uga/kyle.perry/kos/src/user/../testoptions.h \
+ /home/uga/kyle.perry/kos/src/user/../include/syscalls.h \
+ /home/uga/kyle.perry/kos/src/user/../include/kostypes.h \
+ /home/uga/kyle.perry/kos/src/user/../include/pthread.h \
+ /home/uga/kyle.perry/kos/src/user/../include/syscalls.h
+kbloop.o: kbloop.cc /home/uga/kyle.perry/kos/src/user/../testoptions.h
