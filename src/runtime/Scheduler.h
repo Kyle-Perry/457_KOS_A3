@@ -31,7 +31,7 @@ class Scheduler {
   BasicLock readyLock;
   BasicLock printLock;
   
-  volatile mword readyCount; 
+  volatile mword readyCount;
   Tree<ThreadNode> *readyTree;
   
   volatile mword preemption;
@@ -47,10 +47,15 @@ class Scheduler {
   Scheduler(const Scheduler&) = delete;                  // no copy
   const Scheduler& operator=(const Scheduler&) = delete; // no assignment
 
+  mword minGranularity;
+  mword epochLen;
+
 public:
   Scheduler();
   
   bool switchTest(Thread* t);
+  void setMinGranularity(int newVal) { minGranularity = newVal; }
+  void setEpochLen(int newVal) { epochLen = newVal; }
   void setPartner(Scheduler& s) { partner = &s; }
   static void resume(Thread& t);
   void preempt();

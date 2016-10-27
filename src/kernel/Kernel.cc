@@ -39,6 +39,13 @@ static void keybLoop() {
 #endif
 
 void kosMain() {
+
+  int minGranularity = 0;
+  int epochLen = 0;
+  int parsed = 0;
+  bool firstRead = false;
+  Scheduler* target = NULL;
+
   KOUT::outl("Welcome to KOS!", kendl);
   auto iter = kernelFS.find("motb");
   if (iter == kernelFS.end()) {
@@ -53,10 +60,7 @@ void kosMain() {
     KOUT::outl();
   }
 
-  int minGranularity = 0;
-  int epochLen = 0;
-  int parsed = 0;
-  bool firstRead = false;
+//find and open the schedparam fo;e
   iter = kernelFS.find("schedparam");
   if (iter == kernelFS.end()) {
     KOUT::outl("schedparam information not found");
@@ -66,9 +70,14 @@ void kosMain() {
       char c;
       if (f.read(&c, 1) == 0) break;
       KOUT::out1(c);
-      if( (c >= '0') && (c <= '9'))
+	//if the character from schedparam is a number character:
+	//move the current value of parsed one decimal place to the left, then add the number to it.      
+	if( (c >= '0') && (c <= '9'))
 	parsed = (parsed * 10) + (c - '0');
-      else if ( parsed != 0 )
+	//if the character read is not a number, but a number has been previously read:
+	//assign the value to minGranularity if it is the first read, otherwise assign it to epochLen. 
+	//Afterward reset the value of parsed to 0 to prepare for the next number to be read.       
+	else if ( parsed != 0 )
 	{
 	  if (!firstRead)
 	    {
@@ -82,8 +91,18 @@ void kosMain() {
 	  parsed = 0;
 	}
     }
-    KOUT::outl(minGranularity);
-    KOUT::outl(epochLen);
+
+	mword count = Machine::getProcessorCount();	
+	for(mword i = 0; i < count; i++)
+	{
+		target = Machine::getScheduler(i);
+		if(target == NULL)
+			break;
+		target->setMinGranularity(minGranularity);
+		target->setEpochLen(epochLen);
+		KOUT::outl("Update success!");
+	}	
+
     KOUT::outl();
   }
 #if TESTING_TIMER_TEST

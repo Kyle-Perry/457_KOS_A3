@@ -115,6 +115,9 @@ struct IrqInfo {
 static Bitmap<MaxIrqCount> irqMask;     // IRQ bitmap
 static Semaphore asyncIrqSem;
 
+Scheduler* Machine::getScheduler(mword idx)
+{ return processorTable[idx].scheduler; }
+
 // init routine for APs: on boot stack and using identity paging
 void Machine::initAP(mword idx) {
   KASSERT1(idx == apIndex, idx);
