@@ -87,6 +87,7 @@ static const unsigned int maxIDT = 256;
 static InterruptDescriptor idt[maxIDT]                __aligned(pagesize<1>());
 
 // CPU information
+mword Machine::ticksPerSec = 0;
 mword Machine::processorCount = 0;
 static Processor* processorTable = nullptr;
 static Scheduler* schedulerTable = nullptr;
@@ -329,8 +330,7 @@ void Machine::initBSP2() {
   // init PIT timer; used for waiting
   pit.init();
   // init keyboard; must init RTC first (HW req)?
-  keyboard.init();
-
+  
   DBG::outl(DBG::Boot, "********** MULTI CORE **********");
 
   // enable interrupts (off boot stack); needed for timer waiting
@@ -400,6 +400,12 @@ apDone:
   // start irq thread after cdi init -> avoid interference from device irqs
   DBG::outl(DBG::Boot, "Creating IRQ thread...");
   Thread::create()->setPriority(topPriority)->setAffinity(processorTable[0].scheduler)->start((ptr_t)asyncIrqLoop);
+
+  //get ticks per second for scheduler parameters
+  mword a = CPU::readTSC();
+  Timeout::sleep(1000);
+  mword b = CPU::readTSC();
+  ticksPerSec = b - a;  
 }
 
 void Machine::bootCleanup() {

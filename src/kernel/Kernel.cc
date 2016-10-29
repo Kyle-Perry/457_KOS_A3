@@ -93,18 +93,13 @@ void kosMain() {
 
     }
 
-	KOUT::outl("Determining ticks per second...");
-	mword a = CPU::readTSC();
-	Timeout::sleep(1000);
-	mword b = CPU::readTSC();
-	KOUT::outl(a);
-	KOUT::outl(b);
-	KOUT::outl(b-a);
-    KOUT::outl();
+	mword ticksPerSec = Machine::getTicksPerSec();
+	KOUT::out1("Ticks per sec: ");
+	KOUT::outl(ticksPerSec);
+	minGranularity *= (ticksPerSec/1000);
+	epochLen *= (ticksPerSec/1000);
 	
 	KOUT::outl("Converting scheduler parameters from milliseconds to TSC ticks...");
-	minGranularity = minGranularity * (b/1000);
-	epochLen = epochLen * (b/1000);
 	KOUT::out1("Updated value of minGranularity = ");
 	KOUT::outl(minGranularity);
 	KOUT::out1("Updated value of epochLen = ");

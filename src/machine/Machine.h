@@ -26,7 +26,8 @@ class Machine : public NoObject {
   friend void initGdb(mword); // initGdb calls setupIDT to redirect exception handlers
 
   static mword processorCount;
-
+  static mword ticksPerSec;
+  
   static void setupIDT(uint32_t, paddr, uint32_t = 0)  __section(".boot.text");
   static void setupIDTable()                           __section(".boot.text");
 
@@ -44,6 +45,7 @@ public:
 
   static Scheduler* getScheduler(mword idx);
 
+  static mword getTicksPerSec() {return ticksPerSec;}
   static mword getProcessorCount() { return processorCount; }
   static void setAffinity(Thread& t, mword idx);
   static void sendIPI(mword idx, uint8_t vec);
