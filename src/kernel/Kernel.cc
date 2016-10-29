@@ -90,8 +90,29 @@ void kosMain() {
 	    }
 	  parsed = 0;
 	}
+
     }
 
+	KOUT::outl("Determining ticks per second...");
+	mword a = CPU::readTSC();
+	Timeout::sleep(1000);
+	mword b = CPU::readTSC();
+	KOUT::outl(a);
+	KOUT::outl(b);
+	KOUT::outl(b-a);
+    KOUT::outl();
+	
+	KOUT::outl("Converting scheduler parameters from milliseconds to TSC ticks...");
+	minGranularity = minGranularity * (b/1000);
+	epochLen = epochLen * (b/1000);
+	KOUT::out1("Updated value of minGranularity = ");
+	KOUT::outl(minGranularity);
+	KOUT::out1("Updated value of epochLen = ");
+	KOUT::outl(epochLen);
+	KOUT::outl();
+	
+	KOUT::outl("Updating scheduler parameters to new minGranularity and epochLen...");
+	
 	mword count = Machine::getProcessorCount();	
 	for(mword i = 0; i < count; i++)
 	{
@@ -101,9 +122,9 @@ void kosMain() {
 		target->setMinGranularity(minGranularity);
 		target->setEpochLen(epochLen);
 		KOUT::outl("Update success!");
-	}	
-
-    KOUT::outl();
+	}
+	
+	KOUT::outl();
   }
 #if TESTING_TIMER_TEST
   StdErr.print(" timer test, 3 secs...");
