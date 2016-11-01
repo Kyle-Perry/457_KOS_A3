@@ -59,10 +59,6 @@ Scheduler::Scheduler() : readyCount(0), preemption(0), resumption(0), partner(th
 	idleThread->setAffinity(this)->setPriority(idlePriority);
 	// use low-level routines, since runtime context might not exist
 	idleThread->stackPointer = stackInit(idleThread->stackPointer, &Runtime::getDefaultMemoryContext(), (ptr_t)Runtime::idleLoop, this, nullptr, nullptr);
-	
-	//Initialize minGranularity and epochLen
-	minGranularity = 0;
-	epochLen = 0;
 
 	//Initialize the tree that contains the threads waiting to be served
 	readyTree = new Tree<ThreadNode>();

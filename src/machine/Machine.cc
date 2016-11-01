@@ -401,9 +401,77 @@ apDone:
   DBG::outl(DBG::Boot, "Creating IRQ thread...");
   Thread::create()->setPriority(topPriority)->setAffinity(processorTable[0].scheduler)->start((ptr_t)asyncIrqLoop);
 
+/**ASSIGNMENT 3 WORK BEGINS HERE**/
+
+  int minGranularity = 0;
+  int epochLen = 0;
+  int parsed = 0;
+  bool firstRead = false;
+  Scheduler* target = NULL;
+
+
+//find and open the schedparam file
+  auto iter = kernelFS.find("schedparam");
+  if (iter == kernelFS.end()) {
+    KOUT::outl("schedparam information not found");
+  } else {
+    FileAccess f(iter->second);
+    for (;;) {	
+      char c;
+      if (f.read(&c, 1) == 0) break;
+      KOUT::out1(c);
+	//if the character from schedparam is a number character:
+	//move the current value of parsed one decimal place to the left, then add the number to it.      
+	if( (c >= '0') && (c <= '9'))
+	parsed = (parsed * 10) + (c - '0');
+	//if the character read is not a number, but a number has been previously read:
+	//assign the value to minGranularity if it is the first read, otherwise assign it to epochLen. 
+	//Afterward reset the value of parsed to 0 to prepare for the next number to be read.       
+	else if ( parsed != 0 )
+	{
+	  if (!firstRead)
+	    {
+	      minGranularity = parsed;
+	      firstRead = !firstRead;	      
+	    }
+	  else
+	    {
+	      epochLen = parsed;
+	    }
+	  parsed = 0;
+	}
+
+    }
+
+	mword ticksPerSec = Machine::getTicksPerSec();
+	KOUT::out1("Ticks per sec: ");
+	KOUT::outl(ticksPerSec);
+	minGranularity *= (ticksPerSec/1000);
+	epochLen *= (ticksPerSec/1000);
+	
+	KOUT::outl("Converting scheduler parameters from milliseconds to TSC ticks...");
+	KOUT::out1("Updated value of minGranularity = ");
+	KOUT::outl(minGranularity);
+	KOUT::out1("Updated value of epochLen = ");
+	KOUT::outl(epochLen);
+	KOUT::outl();
+	
+	KOUT::outl("Updating scheduler parameters to new minGranularity and epochLen...");
+	
+	mword count = Machine::getProcessorCount();	
+	for(mword i = 0; i < count; i++)
+	{
+		target = Machine::getScheduler(i);
+		if(target == NULL)
+			break;
+		target->setMinGranularity(minGranularity);
+		target->setEpochLen(epochLen);
+		KOUT::outl("Update success!");
+	}}
+	
   //get ticks per second for scheduler parameters
   mword a = CPU::readTSC();
-  Timeout::sleep(1000);
+  Timeout::sleep(1000);  //sleep for 1 second
   mword b = CPU::readTSC();
   ticksPerSec = b - a;  
 }
