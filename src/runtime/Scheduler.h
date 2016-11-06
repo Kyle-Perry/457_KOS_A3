@@ -46,15 +46,20 @@ class Scheduler {
 
   Scheduler(const Scheduler&) = delete;                  // no copy
   const Scheduler& operator=(const Scheduler&) = delete; // no assignment
-
-  mword minGranularity;
+  
+  mword minvRuntime;
+  mword schedMinGranularity;
   mword epochLen;
+  mword defaultEpochLength;
+  uint8_t rtcRate;
 
 public:
   Scheduler();
   
   bool switchTest(Thread* t);
-  void setMinGranularity(int newVal) { minGranularity = newVal; }
+  void setRtcRate(uint8_t newVal) { rtcRate = newVal;}
+  void setMinGranularity(int newVal) {  schedMinGranularity = newVal; }
+  void setDefaultEpochLen(int newVal) {  defaultEpochLength = newVal; }
   void setEpochLen(int newVal) { epochLen = newVal; }
   void setPartner(Scheduler& s) { partner = &s; }
   static void resume(Thread& t);

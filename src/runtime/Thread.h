@@ -36,6 +36,8 @@ class Thread : public EmbeddedList<Thread>::Link {
   mword priority;           // scheduling priority
   mword vRuntime;			// virtual runtime, needed to sort the tree
   bool affinity;            // stick with scheduler
+  bool used;				// used to check if a thread is new or not.
+  bool suspended;			// used to determine if a thread is coming off suspension.
   Scheduler* nextScheduler; // resume on same core (for now)
 
   Runtime::MachContext ctx;

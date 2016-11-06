@@ -54,7 +54,7 @@ void kosMain() {
     KOUT::outl();
   }
 	KOUT::outl();
-  
+	
 #if TESTING_TIMER_TEST
   StdErr.print(" timer test, 3 secs...");
   for (int i = 0; i < 3; i++) {

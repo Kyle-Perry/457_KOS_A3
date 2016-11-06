@@ -23,8 +23,9 @@ static void sender() {
   for (int i = 0; i < 1000; i += 1) {
     mword tc = tipiCount;
     Machine::sendIPI(1, APIC::TestIPI);
+	KOUT::outl(i);
     while (tc == tipiCount) sCount += 1;
-  }
+	}
   tscEnd = CPU::readTSC();
   done = true;
 }

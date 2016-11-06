@@ -21,6 +21,7 @@
 
 class RTC {
   volatile mword currentTick;
+  uint8_t rate;
 public:
   RTC() : currentTick(0) {}
   void init()                                          __section(".boot.text");
@@ -36,6 +37,7 @@ public:
   mword tick() {
     return currentTick;
   }
+  uint8_t getRate(){return rate;}
 };
 
 #endif /* _RTC_h_ */

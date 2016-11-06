@@ -66,6 +66,11 @@ Scheduler::Scheduler() : readyCount(0), preemption(0), resumption(0), partner(th
 	//Add the idle thread to the tree
 	readyTree->insert(*(new ThreadNode(idleThread)));
 	readyCount += 1;
+	
+	schedMinGranularity = 200;
+	defaultEpochLength = 1000;
+	epochLen = defaultEpochLength;
+	minvRuntime = 0;
 }
 
 /***********************************
@@ -86,9 +91,27 @@ static inline void unlock(BasicLock &l, Args&... a) {
 void Scheduler::enqueue(Thread& t) {
   GENASSERT1(t.priority < maxPriority, t.priority);
   readyLock.acquire();
+ 
   readyTree->insert(*(new ThreadNode(&t)));	
   bool wake = (readyCount == 0);
-  readyCount += 1;						
+  readyCount += 1;  
+  if(t.suspended)
+  {
+	t.suspended = false;
+	t.vRuntime += minvRuntime;
+  }
+  
+  if(!(t.used))
+  {
+	t.vRuntime = minvRuntime;
+	t.used = true;
+	if(epochLen < (schedMinGranularity * readyCount))
+	{
+	  epochLen = (schedMinGranularity * readyCount);
+		  
+	}
+  }
+   
   readyLock.release();
   Runtime::debugS("Thread ", FmtHex(&t), " queued on ", FmtHex(this));
   if (wake) Runtime::wakeUp(this);
@@ -101,13 +124,13 @@ void Scheduler::enqueue(Thread& t) {
 void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	//Get current running thread
 	Thread* currentThread = Runtime::getCurrThread();
+	//Get its target scheduler		
 
-	//Get its target scheduler
 	Scheduler* target = currentThread->getAffinity();						
 	
 	//Check if the thread should move to a new scheduler
 	//(based on the affinity)
-	if(target != this && target){						
+	if(target != this && target){	
 		//Switch the served thread on the target scheduler
 		switchThread(target);				
 	}
@@ -115,7 +138,9 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	//Check if it is time to switch the thread on the current scheduler
 	if(switchTest(currentThread)){
 		//Switch the served thread on the current scheduler
+			
 		switchThread(this);	
+		//minvRuntime = readyTree->readMinNode()->th->vRuntime;
 	}
 }
 
@@ -126,12 +151,28 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	one
 ***********************************/
 bool Scheduler::switchTest(Thread* t){
-	t->vRuntime++;
+
+	t->vRuntime += static_cast<mword>(rtcRate) * (t->priority + 1);
+	if(!readyTree->empty())
+	{	if((t->vRuntime % schedMinGranularity) == 0)
+		{
+			Thread* minThread = readyTree->readMinNode()->th;
+	
+			if(minThread->vRuntime < t->vRuntime)	
+			{
+				return true;
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	if (t->vRuntime % 10 == 0)
 		return true;
 	return false;															//Otherwise return that the thread should not be switched
 }
-
 /***********************************
     Switches the current running
 	thread with the next thread
@@ -186,10 +227,22 @@ threadFound:
 	suspended
 ***********************************/
 void Scheduler::suspend(BasicLock& lk) {
+  Thread* currThread = Runtime::getCurrThread();
+  if(!readyTree->empty())
+  {
+	currThread->suspended = true;
+	currThread->vRuntime -= readyTree->readMinNode()->th->vRuntime;
+  }
   Runtime::FakeLock fl;
   switchThread(nullptr, lk);
 }
 void Scheduler::suspend(BasicLock& lk1, BasicLock& lk2) {
+  Thread* currThread = Runtime::getCurrThread();
+  if(!readyTree->empty())
+  {
+	currThread->suspended = true;
+	currThread->vRuntime -= readyTree->readMinNode()->th->vRuntime;
+  }
   Runtime::FakeLock fl;
   switchThread(nullptr, lk1, lk2);
 }
