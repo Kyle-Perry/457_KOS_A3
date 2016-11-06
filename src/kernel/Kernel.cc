@@ -55,6 +55,32 @@ void kosMain() {
   }
 	KOUT::outl();
 	
+	KOUT::outl("Begin AVL Tree tests...");
+	Tree<int> *testTree = new Tree<int>;
+	
+	//Tree is empty?
+	KASSERT0(testTree->empty());
+	
+	//Adding a node with value 5 to the tree
+	testTree->insert(5);
+	KASSERT0(*(testTree->readMinNode()) == 5);
+	
+	//Find the value 4 in tree, expecting NULL be returned
+	KASSERT0(testTree->find(4) == NULL);
+	
+	//Read the min node of the tree, expecting 3
+	testTree->insert(3);
+	testTree->insert(4);
+	KASSERT0(*testTree->popMinNode() == 3);
+	
+	//Find the value 4 in tree, expecting it to be returned
+	KASSERT0(testTree->find(4) != NULL);
+	
+	//Delete node 5, try to find it
+	testTree->deleteNode(5);
+	KASSERT0(testTree->find(5) == NULL);
+	
+	
 #if TESTING_TIMER_TEST
   StdErr.print(" timer test, 3 secs...");
   for (int i = 0; i < 3; i++) {
