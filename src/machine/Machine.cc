@@ -438,7 +438,8 @@ void Machine::bootCleanup() {
 
 void Machine::bootMain() {
   Machine::initBSP2();
-  Machine::bootCleanup();		
+  Machine::bootCleanup();	
+  
    /**ASSIGNMENT 3 WORK BEGINS HERE**/
   int minGranularity = 0;
   int epochLen = 0;
@@ -448,18 +449,18 @@ void Machine::bootMain() {
 
 
   //get ticks per second for scheduler parameters
-  //int ticksPerSec = Machine::getTicksPerSec();
   mword a = CPU::readTSC();
   Timeout::sleep(1000);  //sleep for 1 second
   mword b = CPU::readTSC();
   ticksPerSec = b - a;
 
-
+  //print the RTC rate to the boot screen
   uint8_t rtcRate = rtc.getRate();
 
   //find and open the schedparam file
   auto iter = kernelFS.find("schedparam");
   if (iter == kernelFS.end()) {
+	  //if the file was not found
     KOUT::outl("schedparam information not found");
   } else {
     FileAccess f(iter->second);
@@ -490,10 +491,11 @@ void Machine::bootMain() {
 
     }
 
-
+	//update the minGranularity and epochLen values to be in TSC ticks
 	minGranularity *= (ticksPerSec/1000.0);
 	epochLen *= (ticksPerSec/1000.0);
-	
+
+	//Print the values to the KOS Boot screen
 	KOUT::out1("Ticks per sec: ");
 	KOUT::outl(ticksPerSec);
 	KOUT::out1("rtcRate = ");
@@ -505,6 +507,7 @@ void Machine::bootMain() {
 	KOUT::outl(epochLen);
 	KOUT::outl();
 
+	//update the information of epochLen and minGranularity for each scheduler
 	for(int i = 0; i < getProcessorCount(); i++)
 	{
 		target = Machine::getScheduler(i);

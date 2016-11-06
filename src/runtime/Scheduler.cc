@@ -97,12 +97,19 @@ void Scheduler::enqueue(Thread& t) {
   readyCount += 1;  
   if(t.suspended)
   {
+	//if the thread is flagged as suspended, when it comes off suspension
+	//add the runtime of the leftmost node of the tree to it and flag it as no longer suspended
 	t.suspended = false;
 	t.vRuntime += minvRuntime;
   }
   
   if(!(t.used))
   {
+	//if the thread is flagged as not used
+	//its runtime equals the runtime of the leftmost node of the tree
+	//flag it as being used
+	//and update the epochLen if the epochLen is smaller than the number of threads in the tree
+	//times the minGranularity
 	t.vRuntime = minvRuntime;
 	t.used = true;
 	if(epochLen < (schedMinGranularity * readyCount))
@@ -151,15 +158,18 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	one
 ***********************************/
 bool Scheduler::switchTest(Thread* t){
-
+	//update runtime as a function of thread priority and the number of ticks between interrupts
 	t->vRuntime += static_cast<mword>(rtcRate) * (t->priority + 1);
 	if(!readyTree->empty())
-	{	if((t->vRuntime % schedMinGranularity) == 0)
+	{	//if the virtual runtime of the current thread is evenly divisible by schedMinGranularity 
+		//then compare it to the virtual runtime of the leftmost thread in the tree
+		if((t->vRuntime % schedMinGranularity) == 0)
 		{
 			Thread* minThread = readyTree->readMinNode()->th;
 	
 			if(minThread->vRuntime < t->vRuntime)	
 			{
+				//if the current threads runtime is greater, return true and switch threads
 				return true;
 			}
 		}
@@ -230,6 +240,7 @@ void Scheduler::suspend(BasicLock& lk) {
   Thread* currThread = Runtime::getCurrThread();
   if(!readyTree->empty())
   {
+	//flag the thread as being suspended, and subtract the runtime of the leftmost node from its runtime
 	currThread->suspended = true;
 	currThread->vRuntime -= readyTree->readMinNode()->th->vRuntime;
   }
@@ -240,6 +251,7 @@ void Scheduler::suspend(BasicLock& lk1, BasicLock& lk2) {
   Thread* currThread = Runtime::getCurrThread();
   if(!readyTree->empty())
   {
+	//flag the thread as being suspended, and subtract the runtime of the leftmost node from its runtime
 	currThread->suspended = true;
 	currThread->vRuntime -= readyTree->readMinNode()->th->vRuntime;
   }

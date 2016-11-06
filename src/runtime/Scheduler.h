@@ -47,11 +47,11 @@ class Scheduler {
   Scheduler(const Scheduler&) = delete;                  // no copy
   const Scheduler& operator=(const Scheduler&) = delete; // no assignment
   
-  mword minvRuntime;
-  mword schedMinGranularity;
-  mword epochLen;
-  mword defaultEpochLength;
-  uint8_t rtcRate;
+  mword minvRuntime;			//minimum runtime of the readyTree
+  mword schedMinGranularity; 	//minimum granularity of threads on the scheduler
+  mword epochLen;				//used epochLen of Scheduler
+  mword defaultEpochLength; 	//default epochLen of the Scheduler
+  uint8_t rtcRate;				//rtcRate of the machine
 
 public:
   Scheduler();
