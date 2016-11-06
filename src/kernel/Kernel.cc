@@ -80,7 +80,6 @@ void kosMain() {
 	testTree->deleteNode(5);
 	KASSERT0(testTree->find(5) == NULL);
 	
-	
 #if TESTING_TIMER_TEST
   StdErr.print(" timer test, 3 secs...");
   for (int i = 0; i < 3; i++) {

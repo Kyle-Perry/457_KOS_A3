@@ -169,6 +169,7 @@ bool Scheduler::switchTest(Thread* t){
 	
 			if(minThread->vRuntime < t->vRuntime)	
 			{
+				KOUT::outl("Swtich threads!");
 				//if the current threads runtime is greater, return true and switch threads
 				return true;
 			}
